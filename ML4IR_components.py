@@ -1,28 +1,22 @@
-try:
-    import numpy as np
-    from collections import defaultdict
+from collections import defaultdict
 
-    from rdkit import DataStructs
-    from rdkit.Chem.Fingerprints import FingerprintMols
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-
-    from keras.models import Sequential
-    from keras.layers import Dense
-    from keras.layers import Dropout
-    from keras.layers import Lambda
-
-    import keras as keras
-    import keras.backend as K
-except ModuleNotFoundError:
-    raise Exception(
-        "Please make sure rdkit, tensorflow and keras are installed!\n" + "In an anaconda environment run the following commands:\n" + "\t conda install -c rdkit rdkit\n" + "\t conda install -c conda-forge tensorflow\n" + "\t conda install keras")
+import keras as keras
+import keras.backend as K
+import numpy as np
+from keras.layers import Dense
+from keras.layers import Lambda
+from keras.models import Sequential
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 
-# Generates the inputs of the NN training as a dictionary with keys ("smiles","X","Y" for train, val and test sets and "IDs")
-# Molecular fragments which occur less than Nmin times in the training set are discarded 
-# Nmin and radius are also stored in the result
 def GenerateDATA(smiles, targets, radius=11, splits=None, Nmin=4):
+    """
+    # Generates the inputs of the NN training as a dictionary with keys ("smiles","X","Y" for train, val and test sets and "IDs")
+    # Molecular fragments which occur less than Nmin times in the training set are discarded
+    # Nmin and radius are also stored in the result
+    """
+
     if splits is None:
         splits = [0.7, 0.15, 0.15]
     allIDs = defaultdict(int)
@@ -81,8 +75,11 @@ def GenerateDATA(smiles, targets, radius=11, splits=None, Nmin=4):
 # The IDs have to be taken from the file which was used to train the network, the radius has to be set to the same number (or more)
 def GenerateFP(smiles, IDs, radius=11):
     mol = Chem.MolFromSmiles(smiles)
-    fp = AllChem.GetMorganFingerprint(mol, radius)
 
+    if mol is None:
+        return None
+
+    fp = AllChem.GetMorganFingerprint(mol, radius)
     N_fragments = len(IDs)
     X = np.zeros(N_fragments)
 
@@ -99,7 +96,11 @@ def EMDloss(Y1, Y2):
     normed_Y2 = (Y2 / K.sum(Y2, axis=1)[:, None])
     diff = normed_Y1 - normed_Y2
 
-    return K.sum(K.abs(K.cumsum(diff, axis=1)))
+    # 2选1 (推荐不取均值)
+    # loss = K.mean(K.sum(K.abs(K.cumsum(diff, axis=1)), axis=1))
+    loss = K.sum(K.abs(K.cumsum(diff, axis=1)))
+
+    return loss
 
 
 def TrainModel(data, layers, lossfunc):
@@ -110,14 +111,14 @@ def TrainModel(data, layers, lossfunc):
     model.add(Dense(len(data["Y_train"][0]), activation='linear'))
     model.add(Lambda(lambda x: K.abs(x)))
 
-    opt = keras.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    opt = keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, amsgrad=False)
 
     model.compile(loss=lossfunc, optimizer=opt)
 
     cb = [keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.005, patience=50, verbose=0, mode='auto',
                                         baseline=None, restore_best_weights=True)]
 
-    model.fit(data["X_train"], data["Y_train"], epochs=999999, batch_size=25, callbacks=cb,
+    model.fit(data["X_train"], data["Y_train"], epochs=999999, batch_size=32, callbacks=cb,
               validation_data=(data["X_val"], data["Y_val"]))
 
     return model
