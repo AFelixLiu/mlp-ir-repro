@@ -97,8 +97,8 @@ def EMDloss(Y1, Y2):
     diff = normed_Y1 - normed_Y2
 
     # 2选1 (推荐不取均值)
-    # loss = K.mean(K.sum(K.abs(K.cumsum(diff, axis=1)), axis=1))
-    loss = K.sum(K.abs(K.cumsum(diff, axis=1)))
+    # loss = K.mean(K.sum(K.abs(K.cumsum(diff, axis=1)), axis=1))  # 结果为单个样本的loss
+    loss = K.sum(K.abs(K.cumsum(diff, axis=1)))  # 结果为一个batch样本的sum_loss
 
     return loss
 
@@ -119,6 +119,6 @@ def TrainModel(data, layers, lossfunc):
                                         baseline=None, restore_best_weights=True)]
 
     model.fit(data["X_train"], data["Y_train"], epochs=999999, batch_size=32, callbacks=cb,
-              validation_data=(data["X_val"], data["Y_val"]))
+              validation_data=(data["X_val"], data["Y_val"]))  # loss会对所有batch个数求均值，但均值结果取决于EMDloss的设置（单个样本的均值/一个batch样本的sum_loss的均值）
 
     return model
