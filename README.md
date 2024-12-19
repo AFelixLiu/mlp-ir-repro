@@ -4,5 +4,5 @@ This repo is a local reproduction of the paper ***"[Machine-learning Prediction 
 
 #### Recommend Use
 
-* python 3.7.*
+* python 3.8.*
 * tensorflow 2.12.0
