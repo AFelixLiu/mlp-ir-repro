@@ -32,4 +32,4 @@ opt = keras.optimizers.Adam(learning_rate=1e-4)
 
 ### 📜 开源协议
 ---
-本项目遵循 **[Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)** 协议。
+本项目遵循 **[CC BY 4.0 License](https://creativecommons.org/licenses/by/4.0/)**。
